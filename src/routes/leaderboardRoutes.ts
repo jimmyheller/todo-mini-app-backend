@@ -1,5 +1,5 @@
 import express from 'express';
-import User from '../models/User';
+import { getLeaderboard } from '../services/leaderboardService';
 
 const router = express.Router();
 
@@ -8,20 +8,7 @@ router.get('/', async (req, res) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const users = await User.find()
-      .sort({ tokens: -1 })
-      .skip(offset)
-      .limit(limit);
-
-    const total = await User.countDocuments();
-
-    const leaderboard = users.map((user, index) => ({
-      rank: offset + index + 1,
-      id: user.id,
-      name: user.username,
-      tokens: user.tokens,
-      streaks: user.currentStreak,
-    }));
+    const { leaderboard, total } = await getLeaderboard(limit, offset);
 
     res.json({
       leaderboard,
@@ -30,7 +17,11 @@ router.get('/', async (req, res) => {
       offset,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching leaderboard' });
+    console.error('Leaderboard Error:', error);
+    res.status(500).json({ 
+      message: 'Error fetching leaderboard',
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
