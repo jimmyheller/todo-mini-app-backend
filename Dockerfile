@@ -17,7 +17,7 @@ COPY . .
 # Run the build step
 RUN npm run build
 
-# Display the contents of the dist directory
+#Display the contents of the dist directory
 #RUN echo "Contents of dist directory:" && ls -la dist
 
 EXPOSE 3000

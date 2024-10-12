@@ -10,9 +10,12 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017/todo_db
       - REDIS_URL=redis://redis:6379
       - PORT=3000
+      - BOT_TOKEN=${BOT_TOKEN}
     volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
+      - ./src:/usr/src/app/src
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+    working_dir: /usr/src/app
 
   mongodb:
     image: mongo:latest

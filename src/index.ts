@@ -1,11 +1,22 @@
+import dotenv from 'dotenv';
+import path from 'path';
 import express from 'express';
 import mongoose from 'mongoose';
 import { connectRedis } from './config/redis';
 import userRoutes from './routes/userRoutes';
 import leaderboardRoutes from './routes/leaderboardRoutes';
 
+// Load environment variables
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Log environment variables (remove in production)
+console.log('Environment variables:');
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
+console.log('REDIS_URL:', process.env.REDIS_URL ? 'Set' : 'Not set');
+console.log('BOT_TOKEN:', process.env.BOT_TOKEN ? 'Set' : 'Not set');
 
 app.use(express.json());
 
