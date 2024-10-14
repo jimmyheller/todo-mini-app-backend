@@ -1,25 +1,36 @@
 import User, { IUser } from '../models/User';
 import { generateReferralCode } from '../utils/referralCode';
 
-export async function createOrFetchUser(userData: any) {
+export async function createOrFetchUser(userData: any): Promise<IUser> {
     try {
         let user = await User.findOne({ telegramId: userData.id });
 
         if (!user) {
-            user = new User({
-                telegramId: userData.id,
-                username: userData.username,
-                firstName: userData.first_name,
-                lastName: userData.last_name,
-                languageCode: userData.language_code,
-                isPremium: userData.is_premium || false,
-                referralCode: generateReferralCode(),
-            });
-            await user.save();
+            try {
+                user = new User({
+                    telegramId: userData.id,
+                    username: userData.username,
+                    firstName: userData.first_name,
+                    lastName: userData.last_name,
+                    isPremium: userData.is_premium || false,
+                    referralCode: generateReferralCode(),
+                });
+                await user.save();
+            } catch (error: any) {
+                if (error.code === 11000) {
+                    // If duplicate key error, fetch the existing user
+                    user = await User.findOne({ telegramId: userData.id });
+                    if (!user) {
+                        throw new Error('Failed to create or fetch user');
+                    }
+                } else {
+                    throw error;
+                }
+            }
         }
 
         return user;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error in createOrFetchUser:', error);
         throw error;
     }
