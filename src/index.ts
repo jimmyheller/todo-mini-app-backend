@@ -43,6 +43,14 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Todo API' });
 });
 
+app.get('/health', (req, res) => {
+  res.json({ message: 'OK' });
+});
+
+app.get('/api', (req, res) => {
+  res.json({ message: 'Welcome to Todo API /api' });
+});
+
 app.use('/api/users', userRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
