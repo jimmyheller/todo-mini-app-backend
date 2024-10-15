@@ -1,21 +1,27 @@
 {
-  "name": "robota-api",
+  "name": "todo-api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "ts-node-dev --respawn --transpile-only src/index.ts"
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only -r dotenv/config src/index.ts",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
     "express": "^4.17.1",
-    "@types/express": "^4.17.13",
-    "@types/node": "^16.11.12",
-    "typescript": "^4.5.2"
+    "mongoose": "^6.0.0",
+    "redis": "^4.0.0"
   },
   "devDependencies": {
-    "ts-node-dev": "^1.1.8"
+    "@types/express": "^4.17.13",
+    "@types/node": "^16.11.12",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.5.2"
   }
 }

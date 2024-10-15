@@ -1,0 +1,165 @@
+openapi: 3.0.0
+info:
+  title: Robota API
+  version: 1.0.0
+  description: API for Robota application managing users, tokens, and leaderboards.
+
+servers:
+  - url: http://localhost:3000/api
+
+paths:
+  /users/create-or-fetch:
+    post:
+      summary: Create or fetch a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                username:
+                  type: string
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                language_code:
+                  type: string
+                is_premium:
+                  type: boolean
+      responses:
+        '200':
+          description: User created or fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '500':
+          description: Server error
+
+  /users/welcome-token:
+    post:
+      summary: Award welcome token to a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                telegramId:
+                  type: integer
+      responses:
+        '200':
+          description: Welcome token awarded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '500':
+          description: Server error
+
+  /users/daily-streak:
+    post:
+      summary: Check and update daily streak for a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                telegramId:
+                  type: integer
+      responses:
+        '200':
+          description: Daily streak checked and updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '500':
+          description: Server error
+
+  /leaderboard:
+    get:
+      summary: Get leaderboard
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Leaderboard fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leaderboard:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardEntry'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '500':
+          description: Server error
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        telegramId:
+          type: integer
+        username:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        languageCode:
+          type: string
+        isPremium:
+          type: boolean
+        tokens:
+          type: integer
+        currentStreak:
+          type: integer
+        lastVisit:
+          type: string
+          format: date-time
+        referralCode:
+          type: string
+        referredBy:
+          type: string
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        id:
+          type: string
+        name:
+          type: string
+        tokens:
+          type: integer
+        streaks:
+          type: integer
