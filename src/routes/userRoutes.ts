@@ -8,18 +8,13 @@ const router = express.Router();
 router.post('/authenticate', async (req, res) => {
   try {
     const { initData } = req.body;
-    console.log('/authenticate req.body', req.body);
     const validatedData = validateTelegramWebAppData(initData);
 
     if (!validatedData) {
       console.log('invalid authentication data');
       return res.status(401).json({ message: 'Invalid authentication data' });
     }
-
     const user = await createOrFetchUser(validatedData.user);
-
-    // Here you might generate a session token or JWT for the user
-    // For simplicity, we're just sending the user data back
     res.json(user);
   } catch (error: any) {
     console.error('Error in /authenticate:', error);
