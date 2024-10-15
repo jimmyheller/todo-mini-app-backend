@@ -39,9 +39,13 @@ router.post('/welcome-token', async (req, res) => {
 router.post('/daily-streak', async (req, res) => {
   try {
     const { telegramId } = req.body;
+    console.log('telegramId', telegramId);
     const user = await checkAndUpdateDailyStreak(telegramId);
+    console.log('user', user);
     res.json(user);
+    console.log('res.json(user)', res.json(user));
   } catch (error) {
+    console.log('exception in daily-streak', error);
     res.status(500).json({ message: 'Error checking daily streak' });
   }
 });
