@@ -37,15 +37,14 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
 }
 
 export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
-    console.log('awardWelcomeToken telegramId', telegramId);
     const user = await User.findOne({ telegramId });
-    console.log('awardWelcomeToken user', user);
     if (!user) {
         throw new Error('User not found');
     }
 
     if (user.tokens === 0) {
         user.tokens = 500; // Award 500 tokens for first-time users
+        user.currentStreak = 1; //initiating their streak 
         await user.save();
     }
 
@@ -54,7 +53,6 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
 
 export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUser> => {
     const user = await User.findOne({ telegramId });
-    console.log('checkAndUpdateDailyStreak user', user);
     if (!user) {
         throw new Error('User not found');
     }
