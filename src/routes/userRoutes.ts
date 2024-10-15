@@ -28,8 +28,11 @@ router.post('/authenticate', async (req, res) => {
 
 router.post('/welcome-token', async (req, res) => {
   try {
+    console.log('welcome-token req.body', req.body);
     const { telegramId } = req.body;
+    console.log('telegramId', telegramId);
     const user = await awardWelcomeToken(telegramId);
+    console.log('user', user);
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Error awarding welcome token' });

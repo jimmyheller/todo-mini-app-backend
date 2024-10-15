@@ -4,7 +4,7 @@ import { generateReferralCode } from '../utils/referralCode';
 export async function createOrFetchUser(userData: any): Promise<IUser> {
     try {
         let user = await User.findOne({ telegramId: userData.id });
-
+        console.log('createOrFetchUser userData', userData);
         if (!user) {
             try {
                 user = new User({
@@ -37,7 +37,9 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
 }
 
 export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
+    console.log('awardWelcomeToken telegramId', telegramId);
     const user = await User.findOne({ telegramId });
+    console.log('awardWelcomeToken user', user);
     if (!user) {
         throw new Error('User not found');
     }
@@ -52,6 +54,7 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
 
 export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUser> => {
     const user = await User.findOne({ telegramId });
+    console.log('checkAndUpdateDailyStreak user', user);
     if (!user) {
         throw new Error('User not found');
     }
