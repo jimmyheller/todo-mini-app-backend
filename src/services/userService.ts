@@ -61,11 +61,12 @@ export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUs
     const now = new Date();
     const lastVisit = user.lastVisit;
     const daysSinceLastVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 3600 * 24));
+    console.log('daysSinceLastVisit', daysSinceLastVisit)
     console.log('before adding streak', user);
     if (daysSinceLastVisit === 1) {
         user.currentStreak += 1;
         user.tokens += 100; // Award 100 tokens for maintaining the streak
-    } else {
+    } else if (daysSinceLastVisit > 1) {
         user.currentStreak = 1;
         user.tokens += 100;
     }
