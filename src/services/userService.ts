@@ -37,15 +37,15 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
 }
 
 export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
-    console.log('awardWelcomeToken telegramId', telegramId);
     const user = await User.findOne({ telegramId });
-    console.log('awardWelcomeToken user', user);
     if (!user) {
         throw new Error('User not found');
     }
-
+    console.log('awarding the tokens')
     if (user.tokens === 0) {
         user.tokens = 500; // Award 500 tokens for first-time users
+        user.currentStreak = 1; //initiating their streak 
+        console.log('awarding the tokens with user', user);
         await user.save();
     }
 
@@ -54,7 +54,6 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
 
 export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUser> => {
     const user = await User.findOne({ telegramId });
-    console.log('checkAndUpdateDailyStreak user', user);
     if (!user) {
         throw new Error('User not found');
     }
@@ -62,15 +61,16 @@ export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUs
     const now = new Date();
     const lastVisit = user.lastVisit;
     const daysSinceLastVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 3600 * 24));
-
+    console.log('daysSinceLastVisit', daysSinceLastVisit)
+    console.log('before adding streak', user);
     if (daysSinceLastVisit === 1) {
         user.currentStreak += 1;
         user.tokens += 100; // Award 100 tokens for maintaining the streak
     } else if (daysSinceLastVisit > 1) {
         user.currentStreak = 1;
-        user.tokens += 50; // Award 50 tokens for starting a new streak
+        user.tokens += 100;
     }
-
+    console.log('after adding streak', user);
     user.lastVisit = now;
     await user.save();
 
