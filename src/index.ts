@@ -15,8 +15,8 @@ const PORT = process.env.PORT || 3000;
 
 // Log environment variables (remove in production)
 console.log('Environment variables:');
-console.log('MONGODB_URI:', process.env.MONGODB_URI);
-console.log('REDIS_URL:', process.env.REDIS_URL);
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
+console.log('REDIS_URL:', process.env.REDIS_URL ? 'Set' : 'Not set');
 console.log('BOT_TOKEN:', process.env.BOT_TOKEN ? 'Set' : 'Not set');
 
 app.use(express.json());
