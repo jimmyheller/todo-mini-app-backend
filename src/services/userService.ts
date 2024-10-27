@@ -59,20 +59,38 @@ export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUs
     }
 
     const now = new Date();
-    const lastVisit = user.lastVisit;
-    const daysSinceLastVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 3600 * 24));
-    console.log('daysSinceLastVisit', daysSinceLastVisit)
-    console.log('before adding streak', user);
-    if (daysSinceLastVisit === 1) {
+    const lastVisit = new Date(user.lastVisit);
+
+    // Convert both dates to their respective midnight timestamps for calendar day comparison
+    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastVisitDate = new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate());
+
+    // Calculate difference in calendar days
+    const daysDifference = Math.floor((nowDate.getTime() - lastVisitDate.getTime()) / (1000 * 3600 * 24));
+
+    console.log('Current date (midnight):', nowDate);
+    console.log('Last visit date (midnight):', lastVisitDate);
+    console.log('Days difference:', daysDifference);
+    console.log('Before update - Streak:', user.currentStreak, 'Tokens:', user.tokens);
+
+    if (daysDifference === 0) {
+        // Same calendar day - no changes
+        console.log('Same day visit - no streak update');
+    } else if (daysDifference === 1) {
+        // Consecutive calendar day
         user.currentStreak += 1;
-        user.tokens += 100; // Award 100 tokens for maintaining the streak
-    } else if (daysSinceLastVisit > 1) {
+        user.tokens += 100;
+        console.log('Consecutive day - incrementing streak');
+    } else {
+        // More than one day gap
         user.currentStreak = 1;
         user.tokens += 100;
+        console.log('Streak reset - more than one day gap');
     }
-    console.log('after adding streak', user);
+
     user.lastVisit = now;
     await user.save();
 
+    console.log('After update - Streak:', user.currentStreak, 'Tokens:', user.tokens);
     return user;
 };
