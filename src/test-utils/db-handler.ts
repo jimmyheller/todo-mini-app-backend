@@ -1,43 +1,41 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-let mongod: MongoMemoryServer | null = null;
+mongoose.set('strictQuery', false);
 
-/**
- * Connect to the in-memory database.
- */
+let mongod: MongoMemoryServer | undefined;
+let isConnected = false;
+
 export const connect = async () => {
-    mongod = await MongoMemoryServer.create();
+    if (isConnected) return;
+
+    mongod = await MongoMemoryServer.create({
+        instance: {
+            dbName: 'jest-test-db'
+        }
+    });
     const uri = mongod.getUri();
 
-    const mongooseOpts = {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    };
-
     await mongoose.connect(uri);
+    isConnected = true;
 };
 
-/**
- * Drop database, close the connection and stop mongod.
- */
 export const closeDatabase = async () => {
+    if (!isConnected) return;
+
+    await mongoose.connection.dropDatabase();
+    await mongoose.disconnect();
     if (mongod) {
-        await mongoose.connection.dropDatabase();
-        await mongoose.connection.close();
         await mongod.stop();
     }
+    isConnected = false;
 };
 
-/**
- * Remove all the data for all db collections.
- */
 export const clearDatabase = async () => {
-    if (mongod) {
-        const collections = mongoose.connection.collections;
-        for (const key in collections) {
-            const collection = collections[key];
-            await collection.deleteMany({});
-        }
+    if (!isConnected) return;
+
+    const collections = mongoose.connection.collections;
+    for (const collection of Object.values(collections)) {
+        await collection.deleteMany({});
     }
 };

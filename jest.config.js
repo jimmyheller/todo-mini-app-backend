@@ -4,16 +4,18 @@ module.exports = {
     testEnvironment: 'node',
     roots: ['<rootDir>/src'],
     testMatch: ['**/src/**/__tests__/**/*.test.ts'],
-    testTimeout: 30000,
     verbose: true,
     forceExit: true,
+    testTimeout: 10000,
     maxWorkers: 1,
     transform: {
         '^.+\\.tsx?$': ['ts-jest', {
             tsconfig: './tsconfig.json'
         }]
     },
-    moduleNameMapper: {
-        '^@/(.*)$': '<rootDir>/src/$1',
-    }
+    reporters: [
+        "default",
+        "summary"
+    ],
+    verbose: false // Set to false to get cleaner output
 };
