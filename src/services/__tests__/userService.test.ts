@@ -19,6 +19,8 @@ describe('UserService', () => {
     beforeEach(async () => {
         await dbHandler.clearDatabase();
         jest.clearAllMocks();
+        // Reset to real timers before each test
+        jest.useRealTimers();
     });
 
     const mockTelegramData = {
@@ -94,23 +96,97 @@ describe('UserService', () => {
     });
 
     describe('checkAndUpdateDailyStreak', () => {
-        it('should increment streak for consecutive day visits', async () => {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-
-            await User.create({
+        const createUserWithStreak = async (lastVisit: Date, currentStreak: number = 1, tokens: number = 0) => {
+            return await User.create({
                 telegramId: 12345,
                 username: 'testuser',
                 firstName: 'Test',
                 referralCode: 'TEST1234',
-                currentStreak: 1,
-                tokens: 0,
-                lastVisit: yesterday
+                currentStreak,
+                tokens,
+                lastVisit
             });
+        };
 
+        it('should increment streak for visits on consecutive calendar days', async () => {
+            // Set up a fixed current time
+            const now = new Date('2024-01-02T10:00:00Z'); // January 2nd, 2024 at 10 AM UTC
+            const yesterday = new Date('2024-01-01T22:00:00Z'); // January 1st, 2024 at 10 PM UTC
+
+            jest.useFakeTimers();
+            jest.setSystemTime(now);
+
+            await createUserWithStreak(yesterday, 1, 100);
             const updatedUser = await checkAndUpdateDailyStreak(12345);
+
             expect(updatedUser.currentStreak).toBe(2);
-            expect(updatedUser.tokens).toBe(100);
+            expect(updatedUser.tokens).toBe(200); // 100 initial + 100 for streak
+
+            jest.useRealTimers();
+        });
+
+        it('should handle same-day visits without updating streak', async () => {
+            const now = new Date('2024-01-01T16:00:00Z'); // 4 PM UTC
+            const earlierToday = new Date('2024-01-01T08:00:00Z'); // 8 AM UTC same day
+
+            jest.useFakeTimers();
+            jest.setSystemTime(now);
+
+            await createUserWithStreak(earlierToday, 3, 300);
+            const updatedUser = await checkAndUpdateDailyStreak(12345);
+
+            expect(updatedUser.currentStreak).toBe(3); // Should remain unchanged
+            expect(updatedUser.tokens).toBe(300); // Should remain unchanged
+
+            jest.useRealTimers();
+        });
+
+        it('should reset streak after missing days', async () => {
+            const now = new Date('2024-01-03T10:00:00Z'); // January 3rd
+            const twoDaysAgo = new Date('2024-01-01T10:00:00Z'); // January 1st
+
+            jest.useFakeTimers();
+            jest.setSystemTime(now);
+
+            await createUserWithStreak(twoDaysAgo, 5, 500);
+            const updatedUser = await checkAndUpdateDailyStreak(12345);
+
+            expect(updatedUser.currentStreak).toBe(1);
+            expect(updatedUser.tokens).toBe(600);
+
+            jest.useRealTimers();
+        });
+
+        it('should handle month boundary correctly', async () => {
+            const now = new Date('2024-02-01T00:00:00Z'); // February 1st
+            const lastDayOfJan = new Date('2024-01-31T23:59:59Z'); // January 31st
+
+            jest.useFakeTimers();
+            jest.setSystemTime(now);
+
+            await createUserWithStreak(lastDayOfJan, 1, 100);
+            const updatedUser = await checkAndUpdateDailyStreak(12345);
+
+            expect(updatedUser.currentStreak).toBe(2);
+            expect(updatedUser.tokens).toBe(200);
+
+            jest.useRealTimers();
+        });
+
+        it('should handle year boundary correctly', async () => {
+            const now = new Date('2024-01-01T00:00:00Z'); // January 1st, 2024
+            const lastDayOfYear = new Date('2023-12-31T23:59:59Z'); // December 31st, 2023
+
+            jest.useFakeTimers();
+            jest.setSystemTime(now);
+
+            await createUserWithStreak(lastDayOfYear, 1, 100);
+            const updatedUser = await checkAndUpdateDailyStreak(12345);
+
+            expect(updatedUser.currentStreak).toBe(2);
+            expect(updatedUser.tokens).toBe(200);
+
+            jest.useRealTimers();
         });
     });
 });
