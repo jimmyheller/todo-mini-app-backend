@@ -12,6 +12,13 @@ const REWARDS = {
     }
 };
 
+const initializeRewardHistory = (date: Date) => ({
+    accountAge: { lastCalculated: date, totalAwarded: 0 },
+    premium: { lastCalculated: date, totalAwarded: 0 },
+    dailyCheckin: { lastCalculated: date, totalAwarded: 0 },
+    referrals: { lastCalculated: date, totalAwarded: 0 }
+});
+
 export async function createOrFetchUser(userData: any): Promise<IUser> {
     try {
         let user = await User.findOne({ telegramId: userData.id });
@@ -25,13 +32,11 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
                     lastName: userData.last_name,
                     isPremium: userData.is_premium || false,
                     referralCode: generateReferralCode(),
-                    lastVisit: now,  // Initialize lastVisit
-                    createdAt: now,  // Initialize createdAt
-                    rewardHistory: {
-                        accountAge: { lastCalculated: now, totalAwarded: 0 },
-                        premium: { lastCalculated: now, totalAwarded: 0 },
-                        dailyCheckin: { lastCalculated: now, totalAwarded: 0 }
-                    }
+                    lastVisit: now,
+                    createdAt: now,
+                    tokens: 0,
+                    currentStreak: 0,
+                    rewardHistory: initializeRewardHistory(now)
                 });
                 await user.save();
             } catch (error: any) {
@@ -44,6 +49,24 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
                     throw error;
                 }
             }
+        }
+
+        // Ensure all required fields exist
+        const now = new Date();
+        if (!user.rewardHistory) {
+            user.rewardHistory = initializeRewardHistory(now);
+        }
+        if (!user.lastVisit) {
+            user.lastVisit = now;
+        }
+        if (!user.createdAt) {
+            user.createdAt = now;
+        }
+        if (typeof user.tokens !== 'number') {
+            user.tokens = 0;
+        }
+        if (typeof user.currentStreak !== 'number') {
+            user.currentStreak = 0;
         }
 
         return user;
@@ -59,13 +82,15 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
         throw new Error('User not found');
     }
 
-    if (user.tokens === 0) {
+    const now = new Date();
+    if (!user.rewardHistory) {
+        user.rewardHistory = initializeRewardHistory(now);
+    }
+
+    if (!user.tokens || user.tokens === 0) {
         user.tokens = REWARDS.WELCOME;
         user.currentStreak = 1;
-        // Initialize lastVisit if it doesn't exist
-        if (!user.lastVisit) {
-            user.lastVisit = new Date();
-        }
+        user.lastVisit = now;
         await user.save();
     }
 
@@ -73,91 +98,108 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
 };
 
 export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUser> => {
+    console.log('Starting checkAndUpdateDailyStreak for telegramId:', telegramId);
+
     const user = await User.findOne({ telegramId });
     if (!user) {
         throw new Error('User not found');
     }
 
     const now = new Date();
+    console.log('Current time:', now);
 
-    // Initialize lastVisit if it doesn't exist
+    // Initialize or fix missing data
+    if (!user.rewardHistory) {
+        console.log('Initializing reward history');
+        user.rewardHistory = initializeRewardHistory(now);
+    }
     if (!user.lastVisit) {
+        console.log('Initializing lastVisit');
         user.lastVisit = now;
-        user.currentStreak = 1;
-        await user.save();
-        return user;
+    }
+    if (!user.createdAt) {
+        console.log('Initializing createdAt');
+        user.createdAt = now;
+    }
+    if (typeof user.currentStreak !== 'number') {
+        console.log('Initializing currentStreak');
+        user.currentStreak = 0;
+    }
+    if (typeof user.tokens !== 'number') {
+        console.log('Initializing tokens');
+        user.tokens = 0;
     }
 
+    // Ensure rewardHistory has all required properties
+    Object.keys(initializeRewardHistory(now)).forEach(key => {
+        if (!user.rewardHistory[key]) {
+            console.log(`Initializing missing reward history for ${key}`);
+            user.rewardHistory[key] = { lastCalculated: now, totalAwarded: 0 };
+        }
+    });
+
     const lastVisit = new Date(user.lastVisit);
+    console.log('Last visit:', lastVisit);
 
     // Convert dates to midnight for comparison
     const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const lastVisitDate = new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate());
+    console.log('Comparing dates:', { nowDate, lastVisitDate });
 
-    // Calculate days difference
     const daysDifference = Math.floor((nowDate.getTime() - lastVisitDate.getTime()) / (1000 * 3600 * 24));
+    console.log('Days difference:', daysDifference);
 
     let rewardAmount = 0;
 
     if (daysDifference === 1) {
-        // Consecutive day
         user.currentStreak += 1;
         rewardAmount = REWARDS.DAILY_STREAK;
     } else if (daysDifference > 1) {
-        // Streak broken
         user.currentStreak = 1;
         rewardAmount = REWARDS.DAILY_STREAK;
     }
 
+    // Update rewards
     if (rewardAmount > 0) {
         user.tokens += rewardAmount;
-        if (user.rewardHistory?.dailyCheckin) {
-            user.rewardHistory.dailyCheckin.totalAwarded += rewardAmount;
-            user.rewardHistory.dailyCheckin.lastCalculated = now;
-        } else {
-            user.rewardHistory = {
-                ...user.rewardHistory,
-                dailyCheckin: {
-                    lastCalculated: now,
-                    totalAwarded: rewardAmount
-                }
-            };
-        }
-    }
-
-    // Initialize createdAt if it doesn't exist
-    if (!user.createdAt) {
-        user.createdAt = now;
+        user.rewardHistory.dailyCheckin.totalAwarded += rewardAmount;
+        user.rewardHistory.dailyCheckin.lastCalculated = now;
     }
 
     // Check account age rewards
-    const accountAge = Math.floor((now.getTime() - user.createdAt.getTime()) / (1000 * 3600 * 24));
-    if (accountAge >= 30 && (!user.rewardHistory?.accountAge?.totalAwarded || user.rewardHistory.accountAge.totalAwarded < REWARDS.ACCOUNT_AGE.ONE_MONTH)) {
-        user.tokens += REWARDS.ACCOUNT_AGE.ONE_MONTH;
-        if (user.rewardHistory?.accountAge) {
+    try {
+        const accountAge = Math.floor((now.getTime() - user.createdAt.getTime()) / (1000 * 3600 * 24));
+        console.log('Account age in days:', accountAge);
+
+        if (accountAge >= 30 && user.rewardHistory.accountAge.totalAwarded < REWARDS.ACCOUNT_AGE.ONE_MONTH) {
+            user.tokens += REWARDS.ACCOUNT_AGE.ONE_MONTH;
             user.rewardHistory.accountAge.totalAwarded = REWARDS.ACCOUNT_AGE.ONE_MONTH;
             user.rewardHistory.accountAge.lastCalculated = now;
-        }
-    } else if (accountAge >= 7 && (!user.rewardHistory?.accountAge?.totalAwarded || user.rewardHistory.accountAge.totalAwarded < REWARDS.ACCOUNT_AGE.ONE_WEEK)) {
-        user.tokens += REWARDS.ACCOUNT_AGE.ONE_WEEK;
-        if (user.rewardHistory?.accountAge) {
+        } else if (accountAge >= 7 && user.rewardHistory.accountAge.totalAwarded < REWARDS.ACCOUNT_AGE.ONE_WEEK) {
+            user.tokens += REWARDS.ACCOUNT_AGE.ONE_WEEK;
             user.rewardHistory.accountAge.totalAwarded = REWARDS.ACCOUNT_AGE.ONE_WEEK;
             user.rewardHistory.accountAge.lastCalculated = now;
         }
+    } catch (error) {
+        console.error('Error calculating account age rewards:', error);
     }
 
     // Check premium rewards
-    if (user.isPremium && (!user.rewardHistory?.premium?.lastCalculated ||
-        Math.floor((now.getTime() - user.rewardHistory.premium.lastCalculated.getTime()) / (1000 * 3600 * 24)) >= 30)) {
-        user.tokens += REWARDS.PREMIUM_USER;
-        if (user.rewardHistory?.premium) {
+    try {
+        if (user.isPremium &&
+            (!user.rewardHistory.premium.lastCalculated ||
+                Math.floor((now.getTime() - user.rewardHistory.premium.lastCalculated.getTime()) / (1000 * 3600 * 24)) >= 30)) {
+            user.tokens += REWARDS.PREMIUM_USER;
             user.rewardHistory.premium.totalAwarded += REWARDS.PREMIUM_USER;
             user.rewardHistory.premium.lastCalculated = now;
         }
+    } catch (error) {
+        console.error('Error calculating premium rewards:', error);
     }
 
     user.lastVisit = now;
     await user.save();
+    console.log('User saved successfully');
 
     return user;
 };
