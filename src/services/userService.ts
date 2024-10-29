@@ -1,10 +1,20 @@
 import User, { IUser } from '../models/User';
 import { generateReferralCode } from '../utils/referralCode';
 
+// Reward constants
+const REWARDS = {
+    WELCOME: 500,
+    DAILY_STREAK: 100,
+    PREMIUM_USER: 1000,
+    ACCOUNT_AGE: {
+        ONE_WEEK: 1000,
+        ONE_MONTH: 4000
+    }
+};
+
 export async function createOrFetchUser(userData: any): Promise<IUser> {
     try {
         let user = await User.findOne({ telegramId: userData.id });
-        console.log('createOrFetchUser userData', userData);
         if (!user) {
             try {
                 user = new User({
@@ -14,11 +24,15 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
                     lastName: userData.last_name,
                     isPremium: userData.is_premium || false,
                     referralCode: generateReferralCode(),
+                    rewardHistory: {
+                        accountAge: { lastCalculated: new Date(), totalAwarded: 0 },
+                        premium: { lastCalculated: new Date(), totalAwarded: 0 },
+                        dailyCheckin: { lastCalculated: new Date(), totalAwarded: 0 }
+                    }
                 });
                 await user.save();
             } catch (error: any) {
                 if (error.code === 11000) {
-                    // If duplicate key error, fetch the existing user
                     user = await User.findOne({ telegramId: userData.id });
                     if (!user) {
                         throw new Error('Failed to create or fetch user');
@@ -41,11 +55,10 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
     if (!user) {
         throw new Error('User not found');
     }
-    console.log('awarding the tokens')
+
     if (user.tokens === 0) {
-        user.tokens = 500; // Award 500 tokens for first-time users
-        user.currentStreak = 1; //initiating their streak 
-        console.log('awarding the tokens with user', user);
+        user.tokens = REWARDS.WELCOME;
+        user.currentStreak = 1;
         await user.save();
     }
 
@@ -61,36 +74,61 @@ export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUs
     const now = new Date();
     const lastVisit = new Date(user.lastVisit);
 
-    // Convert both dates to their respective midnight timestamps for calendar day comparison
+    // Convert dates to midnight for comparison
     const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const lastVisitDate = new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate());
 
-    // Calculate difference in calendar days
+    // Calculate days difference
     const daysDifference = Math.floor((nowDate.getTime() - lastVisitDate.getTime()) / (1000 * 3600 * 24));
 
-    console.log('Current date (midnight):', nowDate);
-    console.log('Last visit date (midnight):', lastVisitDate);
-    console.log('Days difference:', daysDifference);
-    console.log('Before update - Streak:', user.currentStreak, 'Tokens:', user.tokens);
+    let rewardAmount = 0;
 
-    if (daysDifference === 0) {
-        // Same calendar day - no changes
-        console.log('Same day visit - no streak update');
-    } else if (daysDifference === 1) {
-        // Consecutive calendar day
+    if (daysDifference === 1) {
+        // Consecutive day
         user.currentStreak += 1;
-        user.tokens += 100;
-        console.log('Consecutive day - incrementing streak');
-    } else {
-        // More than one day gap
+        rewardAmount = REWARDS.DAILY_STREAK;
+    } else if (daysDifference > 1) {
+        // Streak broken
         user.currentStreak = 1;
-        user.tokens += 100;
-        console.log('Streak reset - more than one day gap');
+        rewardAmount = REWARDS.DAILY_STREAK;
+    }
+
+    if (rewardAmount > 0) {
+        user.tokens += rewardAmount;
+        if (user.rewardHistory?.dailyCheckin) {
+            user.rewardHistory.dailyCheckin.totalAwarded += rewardAmount;
+            user.rewardHistory.dailyCheckin.lastCalculated = now;
+        }
+    }
+
+    // Check account age rewards
+    const accountAge = Math.floor((now.getTime() - user.createdAt.getTime()) / (1000 * 3600 * 24));
+    if (accountAge >= 30 && (!user.rewardHistory?.accountAge?.totalAwarded || user.rewardHistory.accountAge.totalAwarded < REWARDS.ACCOUNT_AGE.ONE_MONTH)) {
+        user.tokens += REWARDS.ACCOUNT_AGE.ONE_MONTH;
+        if (user.rewardHistory?.accountAge) {
+            user.rewardHistory.accountAge.totalAwarded = REWARDS.ACCOUNT_AGE.ONE_MONTH;
+            user.rewardHistory.accountAge.lastCalculated = now;
+        }
+    } else if (accountAge >= 7 && (!user.rewardHistory?.accountAge?.totalAwarded || user.rewardHistory.accountAge.totalAwarded < REWARDS.ACCOUNT_AGE.ONE_WEEK)) {
+        user.tokens += REWARDS.ACCOUNT_AGE.ONE_WEEK;
+        if (user.rewardHistory?.accountAge) {
+            user.rewardHistory.accountAge.totalAwarded = REWARDS.ACCOUNT_AGE.ONE_WEEK;
+            user.rewardHistory.accountAge.lastCalculated = now;
+        }
+    }
+
+    // Check premium rewards
+    if (user.isPremium && (!user.rewardHistory?.premium?.lastCalculated ||
+        Math.floor((now.getTime() - user.rewardHistory.premium.lastCalculated.getTime()) / (1000 * 3600 * 24)) >= 30)) {
+        user.tokens += REWARDS.PREMIUM_USER;
+        if (user.rewardHistory?.premium) {
+            user.rewardHistory.premium.totalAwarded += REWARDS.PREMIUM_USER;
+            user.rewardHistory.premium.lastCalculated = now;
+        }
     }
 
     user.lastVisit = now;
     await user.save();
 
-    console.log('After update - Streak:', user.currentStreak, 'Tokens:', user.tokens);
     return user;
 };
