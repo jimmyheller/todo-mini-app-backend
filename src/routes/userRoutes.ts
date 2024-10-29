@@ -1,6 +1,7 @@
 import express from 'express';
 import { createOrFetchUser, awardWelcomeToken, checkAndUpdateDailyStreak } from '../services/userService';
 import { validateTelegramWebAppData } from '../utils/telegramAuth';
+import User from '../models/User';  // Add this import
 
 interface RewardsResponse {
   accountAge: {
