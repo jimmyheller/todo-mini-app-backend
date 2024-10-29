@@ -17,6 +17,7 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
         let user = await User.findOne({ telegramId: userData.id });
         if (!user) {
             try {
+                const now = new Date();
                 user = new User({
                     telegramId: userData.id,
                     username: userData.username,
@@ -24,10 +25,12 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
                     lastName: userData.last_name,
                     isPremium: userData.is_premium || false,
                     referralCode: generateReferralCode(),
+                    lastVisit: now,  // Initialize lastVisit
+                    createdAt: now,  // Initialize createdAt
                     rewardHistory: {
-                        accountAge: { lastCalculated: new Date(), totalAwarded: 0 },
-                        premium: { lastCalculated: new Date(), totalAwarded: 0 },
-                        dailyCheckin: { lastCalculated: new Date(), totalAwarded: 0 }
+                        accountAge: { lastCalculated: now, totalAwarded: 0 },
+                        premium: { lastCalculated: now, totalAwarded: 0 },
+                        dailyCheckin: { lastCalculated: now, totalAwarded: 0 }
                     }
                 });
                 await user.save();
@@ -59,6 +62,10 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
     if (user.tokens === 0) {
         user.tokens = REWARDS.WELCOME;
         user.currentStreak = 1;
+        // Initialize lastVisit if it doesn't exist
+        if (!user.lastVisit) {
+            user.lastVisit = new Date();
+        }
         await user.save();
     }
 
@@ -72,6 +79,15 @@ export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUs
     }
 
     const now = new Date();
+
+    // Initialize lastVisit if it doesn't exist
+    if (!user.lastVisit) {
+        user.lastVisit = now;
+        user.currentStreak = 1;
+        await user.save();
+        return user;
+    }
+
     const lastVisit = new Date(user.lastVisit);
 
     // Convert dates to midnight for comparison
@@ -98,7 +114,20 @@ export const checkAndUpdateDailyStreak = async (telegramId: number): Promise<IUs
         if (user.rewardHistory?.dailyCheckin) {
             user.rewardHistory.dailyCheckin.totalAwarded += rewardAmount;
             user.rewardHistory.dailyCheckin.lastCalculated = now;
+        } else {
+            user.rewardHistory = {
+                ...user.rewardHistory,
+                dailyCheckin: {
+                    lastCalculated: now,
+                    totalAwarded: rewardAmount
+                }
+            };
         }
+    }
+
+    // Initialize createdAt if it doesn't exist
+    if (!user.createdAt) {
+        user.createdAt = now;
     }
 
     // Check account age rewards
