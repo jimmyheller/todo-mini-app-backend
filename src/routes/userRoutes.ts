@@ -63,6 +63,19 @@ router.post('/daily-streak', async (req, res) => {
 });
 
 // New endpoint for home page data
+function getInitials(firstName: string = '', lastName: string = ''): string {
+  const firstInitial = firstName.charAt(0).toUpperCase();
+  const lastInitial = lastName.charAt(0).toUpperCase();
+
+  if (firstInitial && lastInitial) {
+    return `${firstInitial}${lastInitial}`;
+  } else if (firstInitial) {
+    return firstInitial + firstInitial;
+  } else {
+    return 'OR'; // Default fallback
+  }
+}
+
 router.get('/home/:telegramId', async (req, res) => {
   try {
     const { telegramId } = req.params;
@@ -74,6 +87,7 @@ router.get('/home/:telegramId', async (req, res) => {
         username: user.username,
         firstName: user.firstName,
         balance: user.tokens,
+        initials: getInitials(user.firstName, user.lastName)
       },
       rewards: {
         accountAge: {
