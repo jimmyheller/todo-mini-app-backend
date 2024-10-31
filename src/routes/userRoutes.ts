@@ -1,7 +1,7 @@
 import express from 'express';
-import { createOrFetchUser, awardWelcomeToken, checkAndUpdateDailyStreak } from '../services/userService';
+import { createOrFetchUser, awardWelcomeToken, checkAndUpdateDailyStreak, getUserRank } from '../services/userService';
 import { validateTelegramWebAppData } from '../utils/telegramAuth';
-import User from '../models/User';  // Add this import
+import User from '../models/User';
 
 interface RewardsResponse {
   accountAge: {
@@ -80,14 +80,15 @@ router.get('/home/:telegramId', async (req, res) => {
   try {
     const { telegramId } = req.params;
     const user = await checkAndUpdateDailyStreak(Number(telegramId)); // This will also update rewards
-
+    const rank = await getUserRank(Number(telegramId));
     // Format the response according to the home page needs
     const response = {
       user: {
         username: user.username,
         firstName: user.firstName,
         balance: user.tokens,
-        initials: getInitials(user.firstName, user.lastName)
+        initials: getInitials(user.firstName, user.lastName),
+        rank: rank
       },
       rewards: {
         accountAge: {
