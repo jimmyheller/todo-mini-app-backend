@@ -59,4 +59,4 @@ coverage
 *.code-workspace
 
 # OS generated files
-.DS
+.DS*

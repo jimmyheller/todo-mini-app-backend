@@ -1,5 +1,6 @@
+// src/routes/userRoutes.ts
 import express from 'express';
-import { createOrFetchUser, awardWelcomeToken, checkAndUpdateDailyStreak, getUserRank } from '../services/userService';
+import { createOrFetchUser, awardWelcomeToken, checkAndUpdateDailyStreak, getUserRank, getInitials, getUserWithFriends } from '../services/userService';
 import { validateTelegramWebAppData } from '../utils/telegramAuth';
 import User from '../models/User';
 
@@ -63,18 +64,7 @@ router.post('/daily-streak', async (req, res) => {
 });
 
 // New endpoint for home page data
-function getInitials(firstName: string = '', lastName: string = ''): string {
-  const firstInitial = firstName.charAt(0).toUpperCase();
-  const lastInitial = lastName.charAt(0).toUpperCase();
 
-  if (firstInitial && lastInitial) {
-    return `${firstInitial}${lastInitial}`;
-  } else if (firstInitial) {
-    return firstInitial + firstInitial;
-  } else {
-    return 'OR'; // Default fallback
-  }
-}
 
 router.get('/home/:telegramId', async (req, res) => {
   try {
@@ -118,6 +108,21 @@ router.get('/home/:telegramId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching home data:', error);
     res.status(500).json({ message: 'Error fetching home data' });
+  }
+});
+
+router.get('/friends/:telegramId', async (req, res) => {
+  try {
+    const { telegramId } = req.params;
+    const friendsData = await getUserWithFriends(Number(telegramId));
+    res.json(friendsData);
+  } catch (error) {
+    console.error('Error fetching friends data:', error);
+    if (error instanceof Error && error.message === 'User not found') {
+      res.status(404).json({ message: 'User not found' });
+    } else {
+      res.status(500).json({ message: 'Error fetching friends data' });
+    }
   }
 });
 
