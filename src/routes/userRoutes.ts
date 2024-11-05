@@ -3,6 +3,7 @@ import express from 'express';
 import { createOrFetchUser, awardWelcomeToken, checkAndUpdateDailyStreak, getUserRank, getInitials, getUserWithFriends } from '../services/userService';
 import { validateTelegramWebAppData } from '../utils/telegramAuth';
 import User from '../models/User';
+import { checkStreakShown, markStreakShown } from '../utils/redis-helpers';
 
 interface RewardsResponse {
   accountAge: {
@@ -51,20 +52,6 @@ router.post('/welcome-token', async (req, res) => {
     res.status(500).json({ message: 'Error awarding welcome token' });
   }
 });
-
-router.post('/daily-streak', async (req, res) => {
-  try {
-    const { telegramId } = req.body;
-    const user = await checkAndUpdateDailyStreak(telegramId);
-    res.json(user);
-  } catch (error) {
-    console.log('exception in daily-streak', error);
-    res.status(500).json({ message: 'Error checking daily streak' });
-  }
-});
-
-// New endpoint for home page data
-
 
 router.get('/home/:telegramId', async (req, res) => {
   try {
@@ -123,6 +110,51 @@ router.get('/friends/:telegramId', async (req, res) => {
     } else {
       res.status(500).json({ message: 'Error fetching friends data' });
     }
+  }
+});
+
+router.get('/should-show-streak/:telegramId', async (req, res) => {
+  try {
+    const { telegramId } = req.params;
+    const timezoneOffset = parseInt(req.query.timezoneOffset as string) || 0;
+
+    const shown = await checkStreakShown(telegramId, timezoneOffset);
+
+    res.json({
+      shouldShow: !shown
+    });
+  } catch (error) {
+    console.error('Error checking streak visibility:', error);
+    res.status(500).json({ message: 'Error checking streak visibility' });
+  }
+});
+
+router.post('/process-daily-streak', async (req, res) => {
+  try {
+    const { telegramId, timezoneOffset } = req.body;
+
+    // First check if already shown today
+    const shown = await checkStreakShown(telegramId, timezoneOffset);
+    if (shown) {
+      return res.status(400).json({
+        message: 'Streak already processed today',
+        shouldRedirect: true
+      });
+    }
+
+    // Mark as shown in Redis
+    await markStreakShown(telegramId, timezoneOffset);
+
+    // Process streak rewards
+    const user = await checkAndUpdateDailyStreak(Number(telegramId));
+
+    res.json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    console.error('Error processing streak:', error);
+    res.status(500).json({ message: 'Error processing streak' });
   }
 });
 
