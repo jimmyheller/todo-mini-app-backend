@@ -3,7 +3,7 @@ import express from 'express';
 import { createOrFetchUser, awardWelcomeToken, checkAndUpdateDailyStreak, getUserRank, getInitials, getUserWithFriends } from '../services/userService';
 import { validateTelegramWebAppData } from '../utils/telegramAuth';
 import User from '../models/User';
-import { checkStreakShown, markStreakShown } from '../utils/redis-helpers';
+import { checkStreakShown, markStreakShown } from '../utils/redisHelpers';
 
 interface RewardsResponse {
   accountAge: {
