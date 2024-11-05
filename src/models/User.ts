@@ -1,3 +1,4 @@
+// src/models/User.ts
 import mongoose, { Schema, Document } from 'mongoose';
 
 interface RewardSource {
