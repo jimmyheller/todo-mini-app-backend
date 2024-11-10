@@ -128,5 +128,61 @@ bot.command('start', async (ctx) => {
 
 // Bot initialization remains the same...
 export const initBot = async (app: express.Application): Promise<void> => {
-    // ... (keep your existing initBot implementation)
+    try {
+        console.log('Initializing bot...');
+        console.log('NODE_ENV:', process.env.NODE_ENV);
+        console.log('WEBHOOK_DOMAIN:', process.env.WEBHOOK_DOMAIN);
+
+        if (process.env.NODE_ENV === 'production' && process.env.WEBHOOK_DOMAIN) {
+            const secretPath = `/webhook-${bot.secretPathComponent()}`;
+            const webhookUrl = process.env.WEBHOOK_DOMAIN.startsWith('https://')
+                ? `${process.env.WEBHOOK_DOMAIN}${secretPath}`
+                : `https://${process.env.WEBHOOK_DOMAIN}${secretPath}`;
+
+            console.log('Setting webhook to:', webhookUrl);
+
+            await bot.telegram.deleteWebhook();
+            await bot.telegram.setWebhook(webhookUrl);
+
+            app.use(secretPath, express.json(), (req, res) => {
+                console.log('Received webhook request:', {
+                    method: req.method,
+                    path: req.path,
+                    body: req.body
+                });
+                bot.handleUpdate(req.body, res);
+            });
+
+            console.log('Webhook setup complete');
+        } else {
+            console.log('Starting bot in polling mode');
+            await bot.launch();
+            console.log('Bot launched in polling mode');
+        }
+
+        // Initialize bot commands
+        await registerBotCommands();
+
+    } catch (error) {
+        console.error('Error initializing bot:', error);
+        throw error;
+    }
 };
+
+export const registerBotCommands = async (): Promise<void> => {
+    try {
+        console.log('Registering bot commands...');
+        const commands = [
+            { command: 'start', description: 'Start the bot and join Robota' },
+            // Add more commands here as needed
+        ];
+
+        await bot.telegram.setMyCommands(commands);
+        console.log('Bot commands registered successfully:', commands);
+    } catch (error) {
+        console.error('Error registering bot commands:', error);
+        throw error;
+    }
+};
+
+export const botInstance = bot;

@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import { connectRedis } from './config/redis';
 import userRoutes from './routes/userRoutes';
 import leaderboardRoutes from './routes/leaderboardRoutes';
-import { initBot, registerBotCommands } from './bot';
+import { initBot } from './bot';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -35,7 +35,6 @@ mongoose.connect(process.env.MONGODB_URI as string)
   .then(async () => {
     console.log('Connected to MongoDB');
     await initBot(app);
-    await registerBotCommands();
     console.log('Bot initialized');
   })
   .catch((err) => console.error('MongoDB connection error:', err));
