@@ -211,12 +211,12 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
                 balance: user.tokens,
                 rank: rank.toString(),
                 referralCode: user.referralCode,
-                initials: getInitials(user.firstName, user.lastName)
+                initials: getInitials(user.firstName, user.lastName, user.username)
             },
             friends: friends.map(friend => ({
                 username: friend.username,
                 balance: friend.tokens,
-                initials: getInitials(friend.firstName, friend.lastName)
+                initials: getInitials(friend.firstName, friend.lastName, friend.username)
             }))
         };
     } catch (error) {
@@ -225,16 +225,17 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
     }
 };
 
-export const getInitials = (firstName: string = '', lastName: string = ''): string => {
+export const getInitials = (firstName: string = '', lastName: string = '', userName: string): string => {
     const firstInitial = firstName.charAt(0).toUpperCase();
     const lastInitial = lastName.charAt(0).toUpperCase();
-    //todo : add username initials in case of not having firstName and LastName
+
+
 
     if (firstInitial && lastInitial) {
         return `${firstInitial}${lastInitial}`;
     } else if (firstInitial) {
         return firstInitial + firstInitial;
     } else {
-        return 'NA';
+        return userName.charAt(0).toUpperCase() + userName.charAt(1).toUpperCase();
     }
 }
