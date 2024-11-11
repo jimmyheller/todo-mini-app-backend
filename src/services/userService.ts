@@ -4,13 +4,8 @@ import { generateReferralCode } from '../utils/referralCode';
 
 // Reward constants
 const REWARDS = {
-    WELCOME: 500,
-    DAILY_STREAK: 100,
-    PREMIUM_USER: 1000,
-    ACCOUNT_AGE: {
-        ONE_WEEK: 1000,
-        ONE_MONTH: 4000
-    }
+    WELCOME: 1000,
+    DAILY_STREAK: 100
 };
 
 interface FriendsResponse {
@@ -109,7 +104,7 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
         user.lastVisit = now;
         await user.save();
     }
-
+    user.tokens = REWARDS.WELCOME;
     return user;
 };
 
