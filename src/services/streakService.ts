@@ -39,7 +39,7 @@ export async function checkStreakStatus(
 ): Promise<StreakCheckResponse> {
     try {
         const user = await User.findOne({ telegramId });
-
+        console.log('#checkStreakStatus: user -> ', user);
         if (!user) {
             return {
                 shouldShowCelebration: true,
@@ -71,7 +71,7 @@ export async function checkStreakStatus(
 
         // Update streak and rewards, passing the timezone offset
         const updatedUser = await checkAndUpdateDailyStreak(telegramId, clientTimezoneOffset);
-
+        console.log('#checkStreakStatus: updatedUser ->', updatedUser);
         return {
             shouldShowCelebration: true,
             userData: updatedUser,
