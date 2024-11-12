@@ -25,8 +25,6 @@ export interface IUser extends Document {
 
   // Rewards tracking
   rewardHistory: {
-    accountAge: RewardSource;
-    premium: RewardSource;
     dailyCheckin: RewardSource;
     referrals: RewardSource;
     [key: string]: RewardSource;  // Allow for dynamic addition of new reward types
@@ -57,8 +55,6 @@ const UserSchema = new Schema({
   lastVisit: { type: Date, default: Date.now },
 
   rewardHistory: {
-    accountAge: { type: RewardSourceSchema, default: () => ({}) },
-    premium: { type: RewardSourceSchema, default: () => ({}) },
     dailyCheckin: { type: RewardSourceSchema, default: () => ({}) },
     referrals: { type: RewardSourceSchema, default: () => ({}) }
   }

@@ -34,8 +34,6 @@ async function createNewUser(telegramId: number, userData: any, referralCode?: s
         isPremium: Boolean(userData.is_premium),
         lastVisit: new Date(),
         rewardHistory: {
-            accountAge: { lastCalculated: new Date(), totalAwarded: 0 },
-            premium: { lastCalculated: new Date(), totalAwarded: 0 },
             dailyCheckin: { lastCalculated: new Date(), totalAwarded: 0 },
             referrals: { lastCalculated: new Date(), totalAwarded: 0 }
         }

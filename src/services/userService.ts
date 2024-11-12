@@ -1,6 +1,6 @@
 // src/services/userService.ts
-import User, { IUser } from '../models/User';
-import { generateReferralCode } from '../utils/referralCode';
+import User, {IUser} from '../models/User';
+import {generateReferralCode} from '../utils/referralCode';
 
 // Reward constants
 const REWARDS = {
@@ -24,15 +24,13 @@ interface FriendsResponse {
 }
 
 const initializeRewardHistory = (date: Date) => ({
-    accountAge: { lastCalculated: date, totalAwarded: 0 },
-    premium: { lastCalculated: date, totalAwarded: 0 },
-    dailyCheckin: { lastCalculated: date, totalAwarded: 0 },
-    referrals: { lastCalculated: date, totalAwarded: 0 }
+    dailyCheckin: {lastCalculated: date, totalAwarded: 0},
+    referrals: {lastCalculated: date, totalAwarded: 0}
 });
 
 export async function createOrFetchUser(userData: any): Promise<IUser> {
     try {
-        let user = await User.findOne({ telegramId: userData.id });
+        let user = await User.findOne({telegramId: userData.id});
         if (!user) {
             try {
                 const now = new Date();
@@ -52,7 +50,7 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
                 await user.save();
             } catch (error: any) {
                 if (error.code === 11000) {
-                    user = await User.findOne({ telegramId: userData.id });
+                    user = await User.findOne({telegramId: userData.id});
                     if (!user) {
                         throw new Error('Failed to create or fetch user');
                     }
@@ -88,7 +86,7 @@ export async function createOrFetchUser(userData: any): Promise<IUser> {
 }
 
 export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
-    const user = await User.findOne({ telegramId });
+    const user = await User.findOne({telegramId});
     if (!user) {
         throw new Error('User not found');
     }
@@ -112,11 +110,10 @@ export const checkAndUpdateDailyStreak = async (
     telegramId: number,
     clientTimezoneOffset: number = 0 // Default to UTC if not provided
 ): Promise<IUser> => {
-    console.log('Starting checkAndUpdateDailyStreak for telegramId:', telegramId);
-    console.log('Client timezone offset:', clientTimezoneOffset);
 
-    const user = await User.findOne({ telegramId });
+    const user = await User.findOne({telegramId});
     if (!user) {
+        console.error(`Could not find any user by ${telegramId}`, telegramId);
         throw new Error('User not found');
     }
 
@@ -143,8 +140,6 @@ export const checkAndUpdateDailyStreak = async (
         (clientNowDate.getTime() - clientLastVisitDate.getTime()) / (1000 * 3600 * 24)
     );
 
-    console.log('Days difference in client timezone:', daysDifference);
-
     // Initialize reward history if needed
     if (!user.rewardHistory) {
         user.rewardHistory = initializeRewardHistory(now);
@@ -160,7 +155,12 @@ export const checkAndUpdateDailyStreak = async (
         rewardAmount = REWARDS.DAILY_STREAK;
     }
 
-    // Rest of the reward calculation logic remains the same...
+    // Update rewards
+    if (rewardAmount > 0) {
+        user.tokens += rewardAmount;
+        user.rewardHistory.dailyCheckin.totalAwarded += rewardAmount;
+        user.rewardHistory.dailyCheckin.lastCalculated = now;
+    }
 
     // Store the visit time in UTC
     user.lastVisit = now;
@@ -171,14 +171,14 @@ export const checkAndUpdateDailyStreak = async (
 
 export const getUserRank = async (telegramId: number): Promise<number> => {
     try {
-        const user = await User.findOne({ telegramId });
+        const user = await User.findOne({telegramId});
         if (!user) {
             throw new Error('User not found');
         }
 
         // Count how many users have more tokens
         const higherRanked = await User.countDocuments({
-            tokens: { $gt: user.tokens }
+            tokens: {$gt: user.tokens}
         });
 
         // Rank is the number of users with more tokens + 1
@@ -192,7 +192,7 @@ export const getUserRank = async (telegramId: number): Promise<number> => {
 export const getUserWithFriends = async (telegramId: number): Promise<FriendsResponse> => {
     try {
         // Get user without updating streaks/rewards
-        const user = await User.findOne({ telegramId });
+        const user = await User.findOne({telegramId});
         if (!user) {
             throw new Error('User not found');
         }
@@ -228,7 +228,6 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
 export const getInitials = (firstName: string = '', lastName: string = '', userName: string): string => {
     const firstInitial = firstName.charAt(0).toUpperCase();
     const lastInitial = lastName.charAt(0).toUpperCase();
-
 
 
     if (firstInitial && lastInitial) {
