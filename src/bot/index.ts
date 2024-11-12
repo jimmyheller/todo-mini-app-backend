@@ -11,7 +11,7 @@ interface BotContext extends Context {
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 
 // Constants
-const REFERRAL_REWARD = 1000;
+const REFERRAL_REWARD = 500;
 const MINI_APP_URL = `t.me/rob_mini_test_bot/robominitestapp`;
 
 // Message templates
