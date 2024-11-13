@@ -1,22 +1,16 @@
 // src/routes/userRoutes.ts
 import express from 'express';
 import {
-    createOrFetchUser,
     awardWelcomeToken,
     checkAndUpdateDailyStreak,
-    getUserRank,
+    createOrFetchUser,
     getInitials,
+    getUserRank,
     getUserWithFriends
 } from '../services/userService';
 import {validateTelegramWebAppData} from '../utils/telegramAuth';
 import User from '../models/User';
 
-interface RewardsResponse {
-    dailyCheckin: {
-        amount: number;
-        lastCalculated: Date;
-    };
-}
 
 const router = express.Router();
 
@@ -68,8 +62,9 @@ router.post('/daily-streak', async (req, res) => {
 router.get('/home/:telegramId', async (req, res) => {
     try {
         const {telegramId} = req.params;
-        const user = await checkAndUpdateDailyStreak(Number(telegramId)); // This will also update rewards
+        const user = await checkAndUpdateDailyStreak(Number(telegramId));
         const rank = await getUserRank(Number(telegramId));
+
         // Format the response according to the home page needs
         const response = {
             user: {
@@ -77,7 +72,11 @@ router.get('/home/:telegramId', async (req, res) => {
                 firstName: user.firstName,
                 balance: user.tokens,
                 initials: getInitials(user.firstName, user.lastName, user.username),
-                rank: rank
+                rank: rank,
+                profilePhoto: user.profilePhoto ? {
+                    smallFileUrl: user.profilePhoto.smallFileUrl,
+                    largeFileUrl: user.profilePhoto.largeFileUrl
+                } : undefined
             },
             rewards: {
                 dailyCheckin: {

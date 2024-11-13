@@ -29,9 +29,12 @@ async function createNewUser(telegramId: number, userData: any, referralCode?: s
         username: userData.username || '',
         firstName: userData.first_name,
         lastName: userData.last_name || '',
+        isPremium: Boolean(userData.is_premium),
+        isBot: Boolean(userData.is_bot),
+        isFake: Boolean(userData.is_fake),
+        isScam: Boolean(userData.is_scam),
         referralCode: generateReferralCode(),
         referredByCode: referralCode,
-        isPremium: Boolean(userData.is_premium),
         lastVisit: new Date(),
         rewardHistory: {
             dailyCheckin: { lastCalculated: new Date(), totalAwarded: 0 },
@@ -61,7 +64,7 @@ async function processReferralReward(referralCode: string): Promise<void> {
         referrer.tokens = (referrer.tokens || 0) + REFERRAL_REWARD;
         await referrer.save();
 
-        console.log('Referral reward processed:', {
+        console.debug('Referral reward processed:', {
             referrerId: referrer.telegramId,
             reward: REFERRAL_REWARD,
             totalReferralRewards: referrer.rewardHistory.referrals.totalAwarded
@@ -80,6 +83,41 @@ async function sendMiniAppLink(ctx: BotContext, message: string): Promise<void> 
     });
 }
 
+async function processUserProfilePhoto(ctx: BotContext, userId: number): Promise<any> {
+    try {
+        const photos = await ctx.telegram.getUserProfilePhotos(userId, 0, 1);
+
+        if (photos && photos.total_count > 0) {
+            const photo = photos.photos[0]; // Get the most recent photo
+
+            // Get small and large size photos
+            const smallPhoto = photo[0]; // 160x160
+            const largePhoto = photo[photo.length - 1]; // largest available size
+
+            // Get file paths
+            const smallFilePath = await ctx.telegram.getFile(smallPhoto.file_id);
+            const largeFilePath = await ctx.telegram.getFile(largePhoto.file_id);
+
+            // Construct URLs (Telegram Bot API file URLs)
+            const baseUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}`;
+            const smallFileUrl = `${baseUrl}/${smallFilePath.file_path}`;
+            const largeFileUrl = `${baseUrl}/${largeFilePath.file_path}`;
+
+            return {
+                smallFileId: smallPhoto.file_id,
+                largeFileId: largePhoto.file_id,
+                smallFileUrl,
+                largeFileUrl,
+                lastUpdated: new Date()
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Error processing profile photo:', error);
+        return null;
+    }
+}
+
 // Main bot command handler
 bot.command('start', async (ctx) => {
     console.log('Start command received');
@@ -94,26 +132,32 @@ bot.command('start', async (ctx) => {
         const telegramId = ctx.from.id;
         const referralCode = ctx.message.text.split(' ')[1];
 
-        console.log('Processing start command:', { telegramId, referralCode });
-
-        // Check if user exists
-        const existingUser = await User.findOne({ telegramId });
+        // Check if user exists -> todo : should be removed when we moved to production
+        let existingUser = await User.findOne({ telegramId });
 
         if (existingUser) {
-            // Case C: Existing User (with or without referral)
-            console.log('Existing user found:', telegramId);
+            // Update existing user's profile photo
+            const profilePhoto = await processUserProfilePhoto(ctx, telegramId);
+            if (profilePhoto) {
+                existingUser.profilePhoto = profilePhoto;
+                await existingUser.save();
+            }
+
             await sendMiniAppLink(ctx, messages.alreadyRegistered);
         } else {
+            // Create new user and process profile photo
+            const user = await createNewUser(telegramId, ctx.from, referralCode);
+            const profilePhoto = await processUserProfilePhoto(ctx, telegramId);
+
+            if (profilePhoto) {
+                user.profilePhoto = profilePhoto;
+                await user.save();
+            }
+
             if (referralCode) {
-                // Case B: New User with referral
-                console.log('Creating new user with referral:', { telegramId, referralCode });
-                await createNewUser(telegramId, ctx.from, referralCode);
                 await processReferralReward(referralCode);
                 await sendMiniAppLink(ctx, messages.welcomeNewReferred);
             } else {
-                // Case A: New User without referral
-                console.log('Creating new user without referral:', telegramId);
-                await createNewUser(telegramId, ctx.from);
                 await sendMiniAppLink(ctx, messages.welcomeNew);
             }
         }

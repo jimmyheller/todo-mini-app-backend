@@ -13,6 +13,16 @@ export interface IUser extends Document {
   firstName: string;
   lastName: string;
   isPremium: boolean;
+  isBot: boolean;
+  isFake: boolean;
+  isScam: boolean;
+  profilePhoto?: {
+    smallFileId: string;    // Small size photo file_id
+    largeFileId: string;    // Large size photo file_id
+    smallFileUrl: string;   // URL for small photo
+    largeFileUrl: string;   // URL for large photo
+    lastUpdated: Date;
+  };
 
   // Referral system
   referralCode: string;      // Their unique code to share
@@ -46,6 +56,16 @@ const UserSchema = new Schema({
   firstName: { type: String, required: true },
   lastName: { type: String },
   isPremium: { type: Boolean, default: false },
+  isBot: { type: Boolean, default: false },
+  isFake: { type: Boolean, default: false },
+  isScam: { type: Boolean, default: false },
+  profilePhoto: {
+    smallFileId: String,
+    largeFileId: String,
+    smallFileUrl: String,
+    largeFileUrl: String,
+    lastUpdated: Date
+  },
 
   referralCode: { type: String, required: true, unique: true },
   referredByCode: { type: String },
