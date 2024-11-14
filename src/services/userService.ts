@@ -31,53 +31,41 @@ const initializeRewardHistory = (date: Date) => ({
 export async function createOrFetchUser(userData: any): Promise<IUser> {
     try {
         let user = await User.findOne({telegramId: userData.id});
-        if (!user) {
-            try {
-                const now = new Date();
-                user = new User({
-                    telegramId: userData.id,
-                    username: userData.username,
-                    firstName: userData.first_name,
-                    lastName: userData.last_name,
-                    isPremium: userData.is_premium || false,
-                    referralCode: generateReferralCode(),
-                    lastVisit: now,
-                    createdAt: now,
-                    tokens: 0,
-                    currentStreak: 0,
-                    rewardHistory: initializeRewardHistory(now)
-                });
-                await user.save();
-            } catch (error: any) {
-                if (error.code === 11000) {
-                    user = await User.findOne({telegramId: userData.id});
-                    if (!user) {
-                        throw new Error('Failed to create or fetch user');
-                    }
-                } else {
-                    throw error;
+        if (user) {
+            return user;
+        }
+
+        try {
+            const now = new Date();
+            user = new User({
+                telegramId: userData.id,
+                username: userData.username,
+                firstName: userData.first_name,
+                lastName: userData.last_name,
+                isPremium: userData.is_premium || false,
+                referralCode: generateReferralCode(),
+                lastVisit: now,
+                createdAt: now,
+                tokens: 0,
+                currentStreak: 0,
+                rewardHistory: initializeRewardHistory(now)
+            });
+            await user.save();
+        } catch (error: any) {
+            if (error.code === 11000) {
+                user = await User.findOne({telegramId: userData.id});
+                if (!user) {
+                    throw new Error('Failed to create or fetch user');
                 }
+            } else {
+                throw error;
             }
         }
 
-        // Ensure all required fields exist
-        const now = new Date();
-        if (!user.rewardHistory) {
-            user.rewardHistory = initializeRewardHistory(now);
-        }
-        if (!user.lastVisit) {
-            user.lastVisit = now;
-        }
-        if (!user.createdAt) {
-            user.createdAt = now;
-        }
-        if (typeof user.tokens !== 'number') {
-            user.tokens = 0;
-        }
-        if (typeof user.currentStreak !== 'number') {
-            user.currentStreak = 0;
-        }
-
+        console.debug('New user created by mini app.', {
+            telegramId: user.telegramId,
+            referralCode: user.referralCode
+        });
         return user;
     } catch (error: any) {
         console.error('Error in createOrFetchUser:', error);

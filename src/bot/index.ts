@@ -24,6 +24,7 @@ const messages = {
 
 // Helper function to create a new user
 async function createNewUser(telegramId: number, userData: any, referralCode?: string): Promise<IUser> {
+    const now = new Date();
     const user = new User({
         telegramId,
         username: userData.username || '',
@@ -35,7 +36,8 @@ async function createNewUser(telegramId: number, userData: any, referralCode?: s
         isScam: Boolean(userData.is_scam),
         referralCode: generateReferralCode(),
         referredByCode: referralCode,
-        lastVisit: new Date(),
+        createdAt: now,
+        lastVisit: now,
         rewardHistory: {
             dailyCheckin: { lastCalculated: new Date(), totalAwarded: 0 },
             referrals: { lastCalculated: new Date(), totalAwarded: 0 }
@@ -43,7 +45,7 @@ async function createNewUser(telegramId: number, userData: any, referralCode?: s
     });
 
     await user.save();
-    console.log('New user created:', { telegramId, referralCode: user.referralCode });
+    console.debug('New user created:', { telegramId, referralCode: user.referralCode });
     return user;
 }
 
