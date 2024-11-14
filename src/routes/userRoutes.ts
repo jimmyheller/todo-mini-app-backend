@@ -62,7 +62,12 @@ router.post('/daily-streak', async (req, res) => {
 router.get('/home/:telegramId', async (req, res) => {
     try {
         const {telegramId} = req.params;
-        const user = await checkAndUpdateDailyStreak(Number(telegramId));
+        const user = await User.findOne({telegramId}); //await checkAndUpdateDailyStreak(Number(telegramId));
+        if (!user) {
+            console.error(`Could not find user by id:${telegramId}`)
+            res.status(404).json({message: 'Could not find user'});
+            return;
+        }
         const rank = await getUserRank(Number(telegramId));
 
         // Format the response according to the home page needs

@@ -165,6 +165,7 @@ export const checkAndUpdateDailyStreak = async (
     };
 };
 
+
 export const getUserRank = async (telegramId: number): Promise<number> => {
     try {
         const user = await User.findOne({telegramId});
