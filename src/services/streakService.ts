@@ -1,6 +1,5 @@
 // src/services/streakService.ts
-import User, { IUser } from '../models/User';
-import { checkAndUpdateDailyStreak } from './userService';
+import User, {IUser} from '../models/User';
 
 interface StreakCheckResponse {
     shouldShowCelebration: boolean;
@@ -38,7 +37,7 @@ export async function checkStreakStatus(
     clientTimezoneOffset: number // Client's timezone offset in minutes
 ): Promise<StreakCheckResponse> {
     try {
-        const user = await User.findOne({ telegramId });
+        const user = await User.findOne({telegramId});
 
         if (!user) {
             return {
@@ -69,12 +68,9 @@ export async function checkStreakStatus(
             };
         }
 
-        // Update streak and rewards, passing the timezone offset
-        const updatedUser = await checkAndUpdateDailyStreak(telegramId, clientTimezoneOffset);
-
         return {
             shouldShowCelebration: true,
-            userData: updatedUser,
+            userData: user,
             isFirstTime: daysDifference > 1
         };
     } catch (error) {

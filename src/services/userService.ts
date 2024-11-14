@@ -23,6 +23,11 @@ interface FriendsResponse {
     }>;
 }
 
+interface DailyStreakResponse {
+    rewardAmount: number;
+    currentStreak: number;
+}
+
 const initializeRewardHistory = (date: Date) => ({
     dailyCheckin: {lastCalculated: date, totalAwarded: 0},
     referrals: {lastCalculated: date, totalAwarded: 0}
@@ -97,7 +102,7 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
 export const checkAndUpdateDailyStreak = async (
     telegramId: number,
     clientTimezoneOffset: number = 0 // Default to UTC if not provided
-): Promise<IUser> => {
+): Promise<DailyStreakResponse> => {
 
     const user = await User.findOne({telegramId});
     if (!user) {
@@ -154,7 +159,10 @@ export const checkAndUpdateDailyStreak = async (
     user.lastVisit = now;
     await user.save();
 
-    return user;
+    return {
+        rewardAmount: rewardAmount,
+        currentStreak: user.currentStreak
+    };
 };
 
 export const getUserRank = async (telegramId: number): Promise<number> => {
