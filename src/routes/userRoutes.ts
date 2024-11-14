@@ -56,9 +56,6 @@ router.post('/daily-streak', async (req, res) => {
     }
 });
 
-// New endpoint for home page data
-
-
 router.get('/home/:telegramId', async (req, res) => {
     try {
         const {telegramId} = req.params;

@@ -5,9 +5,14 @@ import {generateReferralCode} from '../utils/referralCode';
 // Reward constants
 const REWARDS = {
     WELCOME: 1000,
-    DAILY_STREAK: 100
+    REFERRAL: 500,
+    STREAK: {
+        BASE: 100,      // 1-6 days
+        WEEK: 100,      // 7-29 days
+        MONTH: 150,     // 30-99 days
+        CENTURY: 200    // 100+ days
+    }
 };
-
 interface FriendsResponse {
     user: {
         username: string;
@@ -101,9 +106,8 @@ export const awardWelcomeToken = async (telegramId: number): Promise<IUser> => {
 
 export const checkAndUpdateDailyStreak = async (
     telegramId: number,
-    clientTimezoneOffset: number = 0 // Default to UTC if not provided
+    clientTimezoneOffset: number = 0
 ): Promise<DailyStreakResponse> => {
-
     const user = await User.findOne({telegramId});
     if (!user) {
         console.error(`Could not find any user by ${telegramId}`, telegramId);
@@ -140,17 +144,39 @@ export const checkAndUpdateDailyStreak = async (
 
     let rewardAmount = 0;
 
+    // Handle streak updates and calculate rewards
     if (daysDifference === 1) {
+        // Increment streak and calculate reward based on streak length
         user.currentStreak += 1;
-        rewardAmount = REWARDS.DAILY_STREAK;
+
+        // Determine reward amount based on streak length
+        if (user.currentStreak >= 100) {
+            rewardAmount = REWARDS.STREAK.CENTURY;
+        } else if (user.currentStreak >= 30) {
+            rewardAmount = REWARDS.STREAK.MONTH;
+        } else if (user.currentStreak >= 7) {
+            rewardAmount = REWARDS.STREAK.WEEK;
+        } else {
+            rewardAmount = REWARDS.STREAK.BASE;
+        }
     } else if (daysDifference > 1) {
+        // Reset streak if more than one day has passed
         user.currentStreak = 1;
-        rewardAmount = REWARDS.DAILY_STREAK;
+        rewardAmount = REWARDS.STREAK.BASE;
     }
 
-    // Update rewards
+    // Update rewards if applicable
     if (rewardAmount > 0) {
         user.tokens += rewardAmount;
+
+        // Update reward history
+        if (!user.rewardHistory.dailyCheckin) {
+            user.rewardHistory.dailyCheckin = {
+                lastCalculated: now,
+                totalAwarded: 0
+            };
+        }
+
         user.rewardHistory.dailyCheckin.totalAwarded += rewardAmount;
         user.rewardHistory.dailyCheckin.lastCalculated = now;
     }
