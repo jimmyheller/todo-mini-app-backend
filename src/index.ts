@@ -23,8 +23,8 @@ console.log('BOT_TOKEN:', process.env.BOT_TOKEN ? 'Set' : 'Not set');
 
 app.use(express.json());
 const corsOptions = {
-  origin: '*', // This allows any origin
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  origin: 'https://todomanytask.vercel.app/', // This allows any origin
+  methods: 'GET,POST',
   preflightContinue: false,
   optionsSuccessStatus: 204
 };
