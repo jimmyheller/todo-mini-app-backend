@@ -82,7 +82,9 @@ async function processReferralReward(referralCode: string): Promise<void> {
 async function sendWelcomeMessage(ctx: BotContext, message: string): Promise<void> {
     try {
         // First send the animation
-        await ctx.replyWithAnimation({ source: WELCOME_GIF_PATH });
+        await ctx.replyWithAnimation({ source: WELCOME_GIF_PATH },{
+            caption: message // This will show the text under the GIF
+        });
         // Then send the welcome message
         await ctx.reply(message);
     } catch (error) {
