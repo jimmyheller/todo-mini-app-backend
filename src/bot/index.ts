@@ -12,7 +12,7 @@ const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 
 // Constants
 const REFERRAL_REWARD = 500;
-const MINI_APP_URL = `t.me/rob_mini_test_bot/robominitestapp`;
+const MINI_APP_URL = `https://todomanytask.vercel.app`;
 
 // Message templates
 const messages = {
