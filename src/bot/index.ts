@@ -85,8 +85,6 @@ async function sendWelcomeMessage(ctx: BotContext, message: string): Promise<voi
         await ctx.replyWithAnimation({ source: WELCOME_GIF_PATH },{
             caption: message // This will show the text under the GIF
         });
-        // Then send the welcome message
-        await ctx.reply(message);
     } catch (error) {
         console.error('Error sending welcome message:', error);
         await ctx.reply(messages.error);
