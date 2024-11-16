@@ -8,8 +8,8 @@ const REWARDS = {
     REFERRAL: 500,
     STREAK: {
         BASE: 100,      // 1-6 days
-        WEEK: 100,      // 7-29 days
-        MONTH: 150,     // 30-99 days
+        WEEK: 150,      // 7-29 days
+        MONTH: 200,     // 30-99 days
         CENTURY: 200    // 100+ days
     }
 };
