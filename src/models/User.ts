@@ -16,6 +16,7 @@ export interface IUser extends Document {
   isBot: boolean;
   isFake: boolean;
   isScam: boolean;
+  hidden: boolean;
   profilePhoto?: {
     smallFileId: string;    // Small size photo file_id
     largeFileId: string;    // Large size photo file_id
@@ -59,6 +60,7 @@ const UserSchema = new Schema({
   isBot: { type: Boolean, default: false },
   isFake: { type: Boolean, default: false },
   isScam: { type: Boolean, default: false },
+  hidden: { type: Boolean, default: false },
   profilePhoto: {
     smallFileId: String,
     largeFileId: String,

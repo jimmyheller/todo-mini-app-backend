@@ -19,7 +19,12 @@ export const getLeaderboard = async (limit: number, offset: number) => {
     }
 
     console.log('Fetching leaderboard from database');
-    const users = await User.find().sort({ tokens: -1 }).lean();
+    const users = await User.find({
+      $or: [
+        { hidden: false },
+        { hidden: { $exists: false } }  // Include documents where hidden field doesn't exist
+      ]
+    }).sort({ tokens: -1 }).lean();
     
     const leaderboard = users.map((user, index) => ({
       rank: index + 1,
@@ -42,16 +47,6 @@ export const getLeaderboard = async (limit: number, offset: number) => {
     };
   } catch (error) {
     console.error('Error in getLeaderboard:', error);
-    throw error; // Re-throw the error to be caught in the route handler
-  }
-};
-
-export const updateLeaderboard = async (userId: string) => {
-  try {
-    await redisClient.del(LEADERBOARD_KEY);
-    console.log('Leaderboard cache cleared');
-  } catch (error) {
-    console.error('Error in updateLeaderboard:', error);
     throw error;
   }
 };
