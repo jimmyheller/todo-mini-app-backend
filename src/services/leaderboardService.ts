@@ -4,6 +4,7 @@ import {getInitials} from "./userService";
 
 const LEADERBOARD_KEY = 'leaderboard';
 const LEADERBOARD_TTL = 3600; // 1 hour in seconds
+const MAX_LEADERBOARD_SIZE = 500; // Maximum number of users in leaderboard
 
 export const getLeaderboard = async (limit: number, offset: number) => {
   try {
@@ -24,7 +25,10 @@ export const getLeaderboard = async (limit: number, offset: number) => {
         { hidden: false },
         { hidden: { $exists: false } }  // Include documents where hidden field doesn't exist
       ]
-    }).sort({ tokens: -1 }).lean();
+    })
+    .sort({ tokens: -1 })
+    .limit(MAX_LEADERBOARD_SIZE)  // Limit to top 500 users
+    .lean();
     
     const leaderboard = users.map((user, index) => ({
       rank: index + 1,
