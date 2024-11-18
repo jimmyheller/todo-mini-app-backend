@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { connectRedis } from './config/redis';
 import userRoutes from './routes/userRoutes';
 import leaderboardRoutes from './routes/leaderboardRoutes';
+import streakRoutes from './routes/streakRoutes';
 import { initBot } from './bot';
 
 // Load environment variables
@@ -23,7 +24,7 @@ console.log('BOT_TOKEN:', process.env.BOT_TOKEN ? 'Set' : 'Not set');
 app.use(express.json());
 const corsOptions = {
   origin: '*', // This allows any origin
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  methods: 'GET,POST',
   preflightContinue: false,
   optionsSuccessStatus: 204
 };
@@ -58,6 +59,7 @@ app.get('/api', (req, res) => {
 
 app.use('/api/users', userRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/streak', streakRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

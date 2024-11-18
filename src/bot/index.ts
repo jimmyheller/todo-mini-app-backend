@@ -1,8 +1,9 @@
 // src/bot/index.ts
-import { Telegraf, Context } from 'telegraf';
-import User, { IUser } from '../models/User';
-import { generateReferralCode } from '../utils/referralCode';
+import {Telegraf, Context} from 'telegraf';
+import User, {IUser} from '../models/User';
+import {generateReferralCode} from '../utils/referralCode';
 import express from 'express';
+import path from 'path';
 
 interface BotContext extends Context {
     user?: IUser;
@@ -11,44 +12,49 @@ interface BotContext extends Context {
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 
 // Constants
-const REFERRAL_REWARD = 1000;
-const MINI_APP_URL = `t.me/rob_mini_test_bot/robominitestapp`;
+const REFERRAL_REWARD = 500;
+const WELCOME_GIF_PATH = path.join(__dirname, '..', '..', 'assets', 'welcome.mp4');
 
 // Message templates
 const messages = {
-    welcomeNew: '🎉 Welcome to Robota!\n\nStart earning $TODO tokens by using our mini app.',
-    welcomeNewReferred: '🎉 Welcome to Robota!\n\nYou\'ve been invited by a friend! Start earning $TODO tokens by using our mini app.',
-    alreadyRegistered: '👋 Welcome back!\n\nYou already have an account with us.',
+    welcome: 'Let\'s get started ✅\n' +
+        '\n' +
+        'Tap the button "TODO" below to start your first task and earn rewards!\n' +
+        '\n' +
+        '👇',
     error: 'Sorry, something went wrong. Please try again later.'
 };
 
 // Helper function to create a new user
 async function createNewUser(telegramId: number, userData: any, referralCode?: string): Promise<IUser> {
+    const now = new Date();
     const user = new User({
         telegramId,
         username: userData.username || '',
         firstName: userData.first_name,
         lastName: userData.last_name || '',
+        isPremium: Boolean(userData.is_premium),
+        isBot: Boolean(userData.is_bot),
+        isFake: Boolean(userData.is_fake),
+        isScam: Boolean(userData.is_scam),
         referralCode: generateReferralCode(),
         referredByCode: referralCode,
-        isPremium: Boolean(userData.is_premium),
-        lastVisit: new Date(),
+        createdAt: now,
+        lastVisit: now,
         rewardHistory: {
-            accountAge: { lastCalculated: new Date(), totalAwarded: 0 },
-            premium: { lastCalculated: new Date(), totalAwarded: 0 },
-            dailyCheckin: { lastCalculated: new Date(), totalAwarded: 0 },
-            referrals: { lastCalculated: new Date(), totalAwarded: 0 }
+            dailyCheckin: {lastCalculated: new Date(), totalAwarded: 0},
+            referrals: {lastCalculated: new Date(), totalAwarded: 0}
         }
     });
 
     await user.save();
-    console.log('New user created:', { telegramId, referralCode: user.referralCode });
+    console.debug('New user created:', {telegramId, referralCode: user.referralCode});
     return user;
 }
 
 // Helper function to process referral reward
 async function processReferralReward(referralCode: string): Promise<void> {
-    const referrer = await User.findOne({ referralCode });
+    const referrer = await User.findOne({referralCode});
     if (referrer) {
         console.log('Processing referral reward for:', referrer.telegramId);
 
@@ -63,7 +69,7 @@ async function processReferralReward(referralCode: string): Promise<void> {
         referrer.tokens = (referrer.tokens || 0) + REFERRAL_REWARD;
         await referrer.save();
 
-        console.log('Referral reward processed:', {
+        console.debug('Referral reward processed:', {
             referrerId: referrer.telegramId,
             reward: REFERRAL_REWARD,
             totalReferralRewards: referrer.rewardHistory.referrals.totalAwarded
@@ -71,15 +77,52 @@ async function processReferralReward(referralCode: string): Promise<void> {
     }
 }
 
-// Helper function to send mini app link
-async function sendMiniAppLink(ctx: BotContext, message: string): Promise<void> {
-    await ctx.reply(message, {
-        reply_markup: {
-            inline_keyboard: [[
-                { text: "Open Mini App", url: MINI_APP_URL }
-            ]]
+// Helper function to send welcome message with GIF
+async function sendWelcomeMessage(ctx: BotContext, message: string): Promise<void> {
+    try {
+        // First send the animation
+        await ctx.replyWithAnimation({ source: WELCOME_GIF_PATH },{
+            caption: message // This will show the text under the GIF
+        });
+    } catch (error) {
+        console.error('Error sending welcome message:', error);
+        await ctx.reply(messages.error);
+    }
+}
+
+async function processUserProfilePhoto(ctx: BotContext, userId: number): Promise<any> {
+    try {
+        const photos = await ctx.telegram.getUserProfilePhotos(userId, 0, 1);
+
+        if (photos && photos.total_count > 0) {
+            const photo = photos.photos[0]; // Get the most recent photo
+
+            // Get small and large size photos
+            const smallPhoto = photo[0]; // 160x160
+            const largePhoto = photo[photo.length - 1]; // largest available size
+
+            // Get file paths
+            const smallFilePath = await ctx.telegram.getFile(smallPhoto.file_id);
+            const largeFilePath = await ctx.telegram.getFile(largePhoto.file_id);
+
+            // Construct URLs (Telegram Bot API file URLs)
+            const baseUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}`;
+            const smallFileUrl = `${baseUrl}/${smallFilePath.file_path}`;
+            const largeFileUrl = `${baseUrl}/${largeFilePath.file_path}`;
+
+            return {
+                smallFileId: smallPhoto.file_id,
+                largeFileId: largePhoto.file_id,
+                smallFileUrl,
+                largeFileUrl,
+                lastUpdated: new Date()
+            };
         }
-    });
+        return null;
+    } catch (error) {
+        console.error('Error processing profile photo:', error);
+        return null;
+    }
 }
 
 // Main bot command handler
@@ -96,28 +139,32 @@ bot.command('start', async (ctx) => {
         const telegramId = ctx.from.id;
         const referralCode = ctx.message.text.split(' ')[1];
 
-        console.log('Processing start command:', { telegramId, referralCode });
-
-        // Check if user exists
-        const existingUser = await User.findOne({ telegramId });
+        // Check if user exists -> todo : should be removed when we moved to production
+        let existingUser = await User.findOne({telegramId});
 
         if (existingUser) {
-            // Case C: Existing User (with or without referral)
-            console.log('Existing user found:', telegramId);
-            await sendMiniAppLink(ctx, messages.alreadyRegistered);
-        } else {
-            if (referralCode) {
-                // Case B: New User with referral
-                console.log('Creating new user with referral:', { telegramId, referralCode });
-                await createNewUser(telegramId, ctx.from, referralCode);
-                await processReferralReward(referralCode);
-                await sendMiniAppLink(ctx, messages.welcomeNewReferred);
-            } else {
-                // Case A: New User without referral
-                console.log('Creating new user without referral:', telegramId);
-                await createNewUser(telegramId, ctx.from);
-                await sendMiniAppLink(ctx, messages.welcomeNew);
+            // Update existing user's profile photo
+            const profilePhoto = await processUserProfilePhoto(ctx, telegramId);
+            if (profilePhoto) {
+                existingUser.profilePhoto = profilePhoto;
+                await existingUser.save();
             }
+
+            await sendWelcomeMessage(ctx, messages.welcome);
+        } else {
+            // Create new user and process profile photo
+            const user = await createNewUser(telegramId, ctx.from, referralCode);
+            const profilePhoto = await processUserProfilePhoto(ctx, telegramId);
+
+            if (profilePhoto) {
+                user.profilePhoto = profilePhoto;
+                await user.save();
+            }
+
+            if (referralCode) {
+                await processReferralReward(referralCode);
+            }
+            await sendWelcomeMessage(ctx, messages.welcome);
         }
 
     } catch (error) {
@@ -173,7 +220,7 @@ export const registerBotCommands = async (): Promise<void> => {
     try {
         console.log('Registering bot commands...');
         const commands = [
-            { command: 'start', description: 'Start the bot and join Robota' },
+            {command: 'start', description: 'Start the bot and join Robota'},
             // Add more commands here as needed
         ];
 
