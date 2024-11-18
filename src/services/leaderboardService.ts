@@ -32,7 +32,7 @@ export const getLeaderboard = async (limit: number, offset: number) => {
       name: user.username,
       tokens: user.tokens,
       streaks: user.currentStreak,
-      initials: getInitials(user.firstName, user.lastName, user.username),
+      initials: getInitials(user.username),
       profilePhoto: user.profilePhoto ? {
         smallFileUrl: user.profilePhoto.smallFileUrl,
         largeFileUrl: user.profilePhoto.largeFileUrl

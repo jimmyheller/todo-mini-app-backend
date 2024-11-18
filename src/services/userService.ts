@@ -13,6 +13,7 @@ const REWARDS = {
         CENTURY: 200    // 100+ days
     }
 };
+
 interface FriendsResponse {
     user: {
         username: string;
@@ -234,12 +235,12 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
                 balance: user.tokens,
                 rank: rank.toString(),
                 referralCode: user.referralCode,
-                initials: getInitials(user.firstName, user.lastName, user.username)
+                initials: getInitials(user.username)
             },
             friends: friends.map(friend => ({
                 username: friend.username,
                 balance: friend.tokens,
-                initials: getInitials(friend.firstName, friend.lastName, friend.username)
+                initials: getInitials(friend.username)
             }))
         };
     } catch (error) {
@@ -248,16 +249,6 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
     }
 };
 
-export const getInitials = (firstName: string = '', lastName: string = '', userName: string): string => {
-    const firstInitial = firstName.charAt(0).toUpperCase();
-    const lastInitial = lastName.charAt(0).toUpperCase();
-
-
-    if (firstInitial && lastInitial) {
-        return `${firstInitial}${lastInitial}`;
-    } else if (firstInitial) {
-        return firstInitial + firstInitial;
-    } else {
-        return userName.charAt(0).toUpperCase() + userName.charAt(1).toUpperCase();
-    }
+export const getInitials = (userName: string): string => {
+    return userName.charAt(0).toUpperCase() + userName.charAt(1).toUpperCase();
 }
