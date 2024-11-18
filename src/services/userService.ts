@@ -21,11 +21,19 @@ interface FriendsResponse {
         rank: string;
         referralCode: string;
         initials: string;
+        profilePhoto?: {
+            smallFileUrl?: string;
+            largeFileUrl?: string;
+        };
     };
     friends: Array<{
         username: string;
         balance: number;
         initials: string;
+        profilePhoto?: {
+            smallFileUrl?: string;
+            largeFileUrl?: string;
+        };
     }>;
 }
 
@@ -215,19 +223,17 @@ export const getUserRank = async (telegramId: number): Promise<number> => {
 
 export const getUserWithFriends = async (telegramId: number): Promise<FriendsResponse> => {
     try {
-        // Get user without updating streaks/rewards
         const user = await User.findOne({telegramId});
         if (!user) {
             throw new Error('User not found');
         }
 
-        // Get user's rank
         const rank = await getUserRank(telegramId);
 
-        // Find all friends (users who used this user's referral code)
+        // Updated to include profile photo data
         const friends = await User.find({
             referredByCode: user.referralCode
-        }).select('username firstName lastName tokens');
+        }).select('username firstName lastName tokens profilePhoto');
 
         return {
             user: {
@@ -235,12 +241,20 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
                 balance: user.tokens,
                 rank: rank.toString(),
                 referralCode: user.referralCode,
-                initials: getInitials(user.username)
+                initials: getInitials(user.username),
+                profilePhoto: user.profilePhoto ? {
+                    smallFileUrl: user.profilePhoto.smallFileUrl,
+                    largeFileUrl: user.profilePhoto.largeFileUrl
+                } : undefined
             },
             friends: friends.map(friend => ({
                 username: friend.username,
                 balance: friend.tokens,
-                initials: getInitials(friend.username)
+                initials: getInitials(friend.username),
+                profilePhoto: friend.profilePhoto ? {
+                    smallFileUrl: friend.profilePhoto.smallFileUrl,
+                    largeFileUrl: friend.profilePhoto.largeFileUrl
+                } : undefined
             }))
         };
     } catch (error) {
