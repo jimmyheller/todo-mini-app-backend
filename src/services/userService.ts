@@ -230,10 +230,12 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
 
         const rank = await getUserRank(telegramId);
 
-        // Updated to include profile photo data
+        // Updated to include profile photo data and sort by createdAt
         const friends = await User.find({
             referredByCode: user.referralCode
-        }).select('username firstName lastName tokens profilePhoto');
+        })
+            .select('username firstName lastName tokens profilePhoto createdAt')
+            .sort({ createdAt: -1 }); // -1 for descending order (newest first)
 
         return {
             user: {
