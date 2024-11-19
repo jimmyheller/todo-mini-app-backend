@@ -1,6 +1,6 @@
 import redisClient from '../config/redis';
 import User from '../models/User';
-import {getInitials} from "./userService";
+import {getInitials} from "../utils/getInitials";
 
 const LEADERBOARD_KEY = 'leaderboard';
 const LEADERBOARD_TTL = 3600; // 1 hour in seconds
@@ -50,7 +50,7 @@ export const getLeaderboard = async (limit: number, offset: number) => {
       name: user.username,
       tokens: user.tokens,
       streaks: user.currentStreak,
-      initials: getInitials(user.username),
+      initials: getInitials(user.username, user.telegramId, user.firstName, user.lastName),
       profilePhoto: user.profilePhoto ? {
         smallFileUrl: user.profilePhoto.smallFileUrl,
         largeFileUrl: user.profilePhoto.largeFileUrl

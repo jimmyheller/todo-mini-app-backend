@@ -95,11 +95,15 @@ http {
                             'upstream_status="$upstream_status" '
                             'upstream_response_time="$upstream_response_time"';
 
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
     server {
         listen 80;
         listen [::]:80;
         server_name todo.robotalife.com;
         
+        # Redirect all HTTP requests to HTTPS
         return 301 https://$server_name$request_uri;
     }
 
@@ -114,6 +118,30 @@ http {
         access_log /var/log/nginx/access.log detailed_log;
         error_log /var/log/nginx/error.log debug;
 
+        # Telegram Bot Webhook
+        location ~ ^/webhook- {
+            proxy_pass http://127.0.0.1:5000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # Telegram specific timeouts
+            proxy_read_timeout 60;
+            proxy_connect_timeout 60;
+            proxy_send_timeout 60;
+
+            # Debug headers
+            add_header X-Debug-Message "Proxying to webhook" always;
+
+            # Allow only Telegram IPs (optional but recommended)
+            # allow 149.154.160.0/20;
+            # allow 91.108.4.0/22;
+            # deny all;
+        }
+
+        # Backend API
         location /api {
             proxy_pass http://127.0.0.1:5000;
             proxy_http_version 1.1;
@@ -125,7 +153,27 @@ http {
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+
+            add_header X-Debug-Message "Proxying to backend" always;
         }
+
+	location /netdata/ {
+        proxy_pass http://localhost:19999/;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_http_version 1.1;
+        proxy_pass_request_headers on;
+        proxy_set_header Connection "keep-alive";
+        proxy_store off;
+        
+        auth_basic "Netdata Access";
+        auth_basic_user_file /etc/nginx/.htpasswd;
+        
+        # Add these headers to match your existing security
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
         location / {
             root /usr/share/nginx/html;
