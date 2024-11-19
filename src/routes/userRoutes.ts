@@ -73,7 +73,7 @@ router.get('/home/:telegramId', async (req, res) => {
                 username: user.username,
                 firstName: user.firstName,
                 balance: user.tokens,
-                initials: getInitials(user.username),
+                initials: getInitials(user.username, user.telegramId, user.firstName, user.lastName),
                 rank: rank,
                 profilePhoto: user.profilePhoto ? {
                     smallFileUrl: user.profilePhoto.smallFileUrl,

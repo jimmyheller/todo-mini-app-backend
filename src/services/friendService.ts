@@ -55,7 +55,7 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
                 balance: user.tokens,
                 rank: rank.toString(),
                 referralCode: user.referralCode,
-                initials: getInitials(user.username),
+                initials: getInitials(user.username, user.telegramId, user.firstName, user.lastName),
                 profilePhoto: user.profilePhoto ? {
                     smallFileUrl: user.profilePhoto.smallFileUrl,
                     largeFileUrl: user.profilePhoto.largeFileUrl
@@ -64,7 +64,7 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
             friends: friends.map(friend => ({
                 username: friend.username,
                 balance: friend.tokens,
-                initials: getInitials(friend.username),
+                initials: getInitials(friend.username, 1, "", ""),
                 profilePhoto: friend.profilePhoto ? {
                     smallFileUrl: friend.profilePhoto.smallFileUrl,
                     largeFileUrl: friend.profilePhoto.largeFileUrl
