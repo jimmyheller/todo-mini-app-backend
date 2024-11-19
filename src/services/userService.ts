@@ -1,6 +1,7 @@
 // src/services/userService.ts
 import User, {IUser} from '../models/User';
 import {generateReferralCode} from '../utils/referralCode';
+import {getUserRank} from "../utils/userRank";
 
 // Reward constants
 const REWARDS = {
@@ -200,26 +201,6 @@ export const checkAndUpdateDailyStreak = async (
     };
 };
 
-
-export const getUserRank = async (telegramId: number): Promise<number> => {
-    try {
-        const user = await User.findOne({telegramId});
-        if (!user) {
-            throw new Error('User not found');
-        }
-
-        // Count how many users have more tokens
-        const higherRanked = await User.countDocuments({
-            tokens: {$gt: user.tokens}
-        });
-
-        // Rank is the number of users with more tokens + 1
-        return higherRanked + 1;
-    } catch (error) {
-        console.error('Error in getUserRank:', error);
-        throw error;
-    }
-};
 
 export const getUserWithFriends = async (telegramId: number): Promise<FriendsResponse> => {
     try {
