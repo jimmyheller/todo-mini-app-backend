@@ -4,12 +4,12 @@ import {
     awardWelcomeToken,
     checkAndUpdateDailyStreak,
     createOrFetchUser,
-    getInitials,
     getUserWithFriends
 } from '../services/userService';
 import {validateTelegramWebAppData} from '../utils/telegramAuth';
 import User from '../models/User';
 import {getUserRank} from "../utils/userRank";
+import {getInitials} from "../utils/getInitials";
 
 
 const router = express.Router();
@@ -73,7 +73,7 @@ router.get('/home/:telegramId', async (req, res) => {
                 username: user.username,
                 firstName: user.firstName,
                 balance: user.tokens,
-                initials: getInitials(user.username),
+                initials: getInitials(user.username, user.telegramId, user.firstName, user.lastName),
                 rank: rank,
                 profilePhoto: user.profilePhoto ? {
                     smallFileUrl: user.profilePhoto.smallFileUrl,
