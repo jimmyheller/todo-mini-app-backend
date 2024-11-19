@@ -5,11 +5,11 @@ import {
     checkAndUpdateDailyStreak,
     createOrFetchUser,
     getInitials,
-    getUserRank,
     getUserWithFriends
 } from '../services/userService';
 import {validateTelegramWebAppData} from '../utils/telegramAuth';
 import User from '../models/User';
+import {getUserRank} from "../utils/userRank";
 
 
 const router = express.Router();

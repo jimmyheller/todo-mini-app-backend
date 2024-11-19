@@ -7,6 +7,7 @@ import userRoutes from './routes/userRoutes';
 import leaderboardRoutes from './routes/leaderboardRoutes';
 import streakRoutes from './routes/streakRoutes';
 import { initBot } from './bot';
+import friendRoutes from "./routes/friendRoutes";
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -60,6 +61,7 @@ app.get('/api', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/streak', streakRoutes);
+app.use('/api/friend',friendRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
