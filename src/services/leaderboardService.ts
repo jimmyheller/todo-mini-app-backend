@@ -1,6 +1,6 @@
 import redisClient from '../config/redis';
 import User from '../models/User';
-import {getInitials} from "./userService";
+import {getInitials} from "../utils/getInitials";
 
 const LEADERBOARD_KEY = 'leaderboard';
 const LEADERBOARD_TTL = 3600; // 1 hour in seconds

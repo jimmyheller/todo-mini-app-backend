@@ -4,12 +4,12 @@ import {
     awardWelcomeToken,
     checkAndUpdateDailyStreak,
     createOrFetchUser,
-    getInitials,
     getUserWithFriends
 } from '../services/userService';
 import {validateTelegramWebAppData} from '../utils/telegramAuth';
 import User from '../models/User';
 import {getUserRank} from "../utils/userRank";
+import {getInitials} from "../utils/getInitials";
 
 
 const router = express.Router();

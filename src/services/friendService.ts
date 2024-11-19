@@ -1,6 +1,6 @@
 import User from '../models/User';
-import {getInitials} from "./userService";
 import {getUserRank} from "../utils/userRank";
+import {getInitials} from "../utils/getInitials";
 
 interface FriendsResponse {
     total: number;

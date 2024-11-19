@@ -2,6 +2,7 @@
 import User, {IUser} from '../models/User';
 import {generateReferralCode} from '../utils/referralCode';
 import {getUserRank} from "../utils/userRank";
+import {getInitials} from "../utils/getInitials";
 
 // Reward constants
 const REWARDS = {
@@ -246,7 +247,3 @@ export const getUserWithFriends = async (telegramId: number): Promise<FriendsRes
         throw error;
     }
 };
-
-export const getInitials = (userName: string): string => {
-    return userName.charAt(0).toUpperCase() + userName.charAt(1).toUpperCase();
-}
